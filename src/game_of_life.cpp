@@ -5,26 +5,41 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 
+constexpr int WIDTH { 800 };
+constexpr int HEIGHT { 800 };
+constexpr int X { 1000 };
+constexpr int Y { 50 };
+constexpr int FPS { 60 };
+constexpr int sq_len { 20 };
+constexpr int elements = (HEIGHT / sq_len) * (WIDTH / sq_len);
+
 void neighbours(int &col, int& row);
 
+int sq_id(const int &row, const int &col);
+
+void update_cell_status(const int &row, const int&col, std::vector<int>&vec);
+
+void render(sf::RenderWindow &window, 
+			const std::vector<int>& status_vec, 
+			const std::vector<sf::RectangleShape> &rects);
+
 int main(){
-    constexpr int WIDTH { 800 };
-	constexpr int HEIGHT { 800 };
+    
+	sf::RenderWindow window(  sf::VideoMode({WIDTH, HEIGHT}), 
+							  "Conway's GOL", 
+						 	  sf::Style::Titlebar | sf::Style::Close
+							);
 
-	constexpr int X { 1000 };
-	constexpr int Y { 50 };
-
-	constexpr int FPS { 60 };
-
-	sf::RenderWindow window(sf::VideoMode({WIDTH, HEIGHT}), "Conway's GOL", sf::Style::Titlebar | sf::Style::Close);
 	window.setPosition(sf::Vector2i({X, Y}));
 	window.setFramerateLimit(FPS);
 
 	sf::RectangleShape rectangle;
 	rectangle.setSize({20.f, 20.f});
 	rectangle.setFillColor(sf::Color::White);
-	std::vector<sf::RectangleShape> rects;
 
+	std::vector<sf::RectangleShape> rects;
+	std::vector<std::vector<int>> curr_gen_vec(0, std::vector<int>(2));
+	std::vector<int> status_vec(elements, 1);
 
     while(window.isOpen()){
         while(const std::optional event = window.pollEvent()){
@@ -39,13 +54,14 @@ int main(){
 					int click_x = mouse_pos.x;
 					int click_y = mouse_pos.y;
 					
-					int col = click_x / 20;
-					int row = click_y / 20;
+					int col = click_x / sq_len;
+					int row = click_y / sq_len;
 
-					float rect_x = col * 20;
-					float rect_y = row * 20;
+					float rect_x = col * sq_len;
+					float rect_y = row * sq_len;
 
-					neighbours(col, row);
+					// neighbours(col, row);
+					update_cell_status(row, col, status_vec);
 					
 					rectangle.setPosition({rect_x, rect_y});
 					rects.emplace_back(rectangle);
@@ -71,10 +87,7 @@ int main(){
 
 			window.draw(ver);
 		}
-		for(const auto& shape : rects){
-			window.draw(shape);
-		}
-
+		render(window, status_vec, rects);
         window.display();
     }
 }
@@ -96,7 +109,53 @@ void neighbours(int &col, int& row){
 		if(targetRow < 0 || targetRow >= 40){
 			continue;
 		}
+	}
+}
 
-		std::cout << "row : " << targetRow << " col : " << targetCol << std::endl;
+int sq_id(const int &row, const int &col){
+	return ((row * 20) + col);
+}
+
+void update_cell_status(const int &row, const int&col, std::vector<int>&vec){
+	int id = sq_id(row, col);
+	switch (vec[id]){;
+		case 0:
+			vec[id] = 1;
+			break;
+		default:
+			vec[id] = 0;
+	}
+	// if(vec[id] == 0){
+	// 	vec[id] = 1;
+	// }
+}
+
+bool check_status(const int& id, const std::vector<int>&status_vec){
+	return (status_vec[id] == 1 ? true : false);
+}
+
+void update_current_gen(std::vector<std::vector<int>>& curr_gen_vec,
+						const std::vector<int>&status_vec){
+	int id;
+	int status;
+	for(int i = 0; i < 40; i++){
+		for(int j = 0; j < 40; j++){
+			id = sq_id(i, j);
+			status = (check_status(id, status_vec) ? 1 : 0);
+			curr_gen_vec.emplace_back(std::vector<int>{id, status});
+		}
+	}
+}
+//I want to render basing on the live cells, so I'll have to refer to the status_vec
+void render(sf::RenderWindow &window, 
+			const std::vector<int>& status_vec, 
+			const std::vector<sf::RectangleShape> &rects){
+
+	for(const auto& status : status_vec){
+		if(status == 1){
+			for(const auto& shape : rects){
+				window.draw(shape);
+			}
+		}
 	}
 }
