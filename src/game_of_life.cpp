@@ -1,4 +1,3 @@
-#include <array>
 #include <iostream>
 #include <vector>
 
@@ -11,9 +10,10 @@ constexpr int X { 1000 };
 constexpr int Y { 50 };
 constexpr int FPS { 60 };
 constexpr int sq_len { 20 };
+constexpr int COLS = WIDTH / sq_len;
 constexpr int elements = (HEIGHT / sq_len) * (WIDTH / sq_len);
 
-void neighbours(int &col, int& row);
+std::vector<std::vector<int>> neighbours(int &col, int& row);
 
 int sq_id(const int &row, const int &col);
 
@@ -22,6 +22,11 @@ void update_cell_status(const int &row, const int&col, std::vector<int>&vec);
 void render(sf::RenderWindow &window, 
 			const std::vector<int>& status_vec, 
 			const std::vector<sf::RectangleShape> &rects);
+
+void print_curr_gen(const std::vector<std::vector<int>>& curr_gen_vec);
+
+void update_current_gen(std::vector<std::vector<int>>& curr_gen_vec,
+						const std::vector<int>&status_vec);
 
 int main(){
     
@@ -39,7 +44,7 @@ int main(){
 
 	std::vector<sf::RectangleShape> rects;
 	std::vector<std::vector<int>> curr_gen_vec(0, std::vector<int>(2));
-	std::vector<int> status_vec(elements, 1);
+	std::vector<int> status_vec(elements, 0);
 
     while(window.isOpen()){
         while(const std::optional event = window.pollEvent()){
@@ -60,7 +65,6 @@ int main(){
 					float rect_x = col * sq_len;
 					float rect_y = row * sq_len;
 
-					// neighbours(col, row);
 					update_cell_status(row, col, status_vec);
 					
 					rectangle.setPosition({rect_x, rect_y});
@@ -90,15 +94,22 @@ int main(){
 		render(window, status_vec, rects);
         window.display();
     }
+	update_current_gen(curr_gen_vec, status_vec);
+	print_curr_gen(curr_gen_vec);
+	return 0;
 }
 
-void neighbours(int &col, int& row){
+
+//returns a 2d vector of neighbours
+std::vector<std::vector<int>> neighbours(int &col, int& row){
+	std::vector<std::vector<int>> neighbour_vec(0, std::vector<int>(2));
 	int offsets[8][2] = {
 		{ 1,   1}, {  0,  1},
 		{-1,   1}, { -1,  0},
 		{-1,  -1}, {  0, -1},
 		{ 1,  -1}, {  1,  0}
 	};
+	//transform sq_id to row and col
 	for(const auto& offset : offsets){
 		int targetCol = col + offset[0];
 		int targetRow = row + offset[1];
@@ -109,11 +120,13 @@ void neighbours(int &col, int& row){
 		if(targetRow < 0 || targetRow >= 40){
 			continue;
 		}
+		neighbour_vec.emplace_back(std::vector<int>{targetRow, targetCol});
 	}
+	return neighbour_vec;
 }
 
 int sq_id(const int &row, const int &col){
-	return ((row * 20) + col);
+	return row * COLS + col;
 }
 
 void update_cell_status(const int &row, const int&col, std::vector<int>&vec){
@@ -122,12 +135,7 @@ void update_cell_status(const int &row, const int&col, std::vector<int>&vec){
 		case 0:
 			vec[id] = 1;
 			break;
-		default:
-			vec[id] = 0;
 	}
-	// if(vec[id] == 0){
-	// 	vec[id] = 1;
-	// }
 }
 
 bool check_status(const int& id, const std::vector<int>&status_vec){
@@ -156,6 +164,17 @@ void render(sf::RenderWindow &window,
 			for(const auto& shape : rects){
 				window.draw(shape);
 			}
+		}else if(status == 0){
+			continue;
 		}
+	}
+}
+
+void print_curr_gen(const std::vector<std::vector<int>>& curr_gen_vec){
+	for(const auto& el : curr_gen_vec){
+		for(const auto& in_el : el){
+			std::cout << in_el << " ";
+		}
+		std::cout << std::endl;
 	}
 }
