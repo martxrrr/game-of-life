@@ -13,9 +13,9 @@ constexpr int sq_len { 20 };
 constexpr int COLS = WIDTH / sq_len;
 constexpr int elements = (HEIGHT / sq_len) * (WIDTH / sq_len);
 
-std::vector<std::vector<int>> neighbours(int &col, int& row);
-
-int sq_id(const int &row, const int &col);
+inline int sq_id(const int &row, const int &col);
+inline int sq_row(const int& id);
+inline int sq_col(const int& id);
 
 void update_cell_status(const int &row, const int&col, std::vector<int>&vec);
 
@@ -27,6 +27,12 @@ void print_curr_gen(const std::vector<std::vector<int>>& curr_gen_vec);
 
 void update_current_gen(std::vector<std::vector<int>>& curr_gen_vec,
 						const std::vector<int>&status_vec);
+
+
+void neighbours(const std::vector<std::vector<int>>&curr_gen_vec,
+				const std::vector<int>&status_vec);
+
+bool check_status(const int& id, const std::vector<int>&status_vec);
 
 int main(){
     
@@ -95,40 +101,49 @@ int main(){
         window.display();
     }
 	update_current_gen(curr_gen_vec, status_vec);
-	print_curr_gen(curr_gen_vec);
+	neighbours(curr_gen_vec, status_vec);
 	return 0;
 }
 
-
-//returns a 2d vector of neighbours
-std::vector<std::vector<int>> neighbours(int &col, int& row){
-	std::vector<std::vector<int>> neighbour_vec(0, std::vector<int>(2));
+void neighbours(const std::vector<std::vector<int>>&curr_gen_vec,
+				const std::vector<int>&status_vec){
 	int offsets[8][2] = {
 		{ 1,   1}, {  0,  1},
 		{-1,   1}, { -1,  0},
 		{-1,  -1}, {  0, -1},
 		{ 1,  -1}, {  1,  0}
 	};
-	//transform sq_id to row and col
-	for(const auto& offset : offsets){
-		int targetCol = col + offset[0];
-		int targetRow = row + offset[1];
 
-		if(targetCol < 0 || targetCol >= 40){
-			continue;
+	for(const auto& sq : curr_gen_vec){
+		int sqID = sq[0];
+		int row = sq_row(sqID);
+		int col = sq_col(sqID);
+		std::cout << "SQ_ID : " << sqID << " => " << (sq[1] == 1 ? "live" : "dead") << std::endl;
+		for(const auto& offset : offsets){
+			int targetCol = col + offset[0];
+			int targetRow = row + offset[1];
+
+			if(targetCol < 0 || targetCol >= 40){
+				continue;
+			}
+			if(targetRow < 0 || targetRow >= 40){
+				continue;
+			}
+			int neighbour_id = sq_id(targetRow, targetCol);
+			std::cout << (check_status(neighbour_id, status_vec) ? "live" : "dead") << std::endl;
 		}
-		if(targetRow < 0 || targetRow >= 40){
-			continue;
-		}
-		neighbour_vec.emplace_back(std::vector<int>{targetRow, targetCol});
 	}
-	return neighbour_vec;
 }
 
-int sq_id(const int &row, const int &col){
+inline int sq_id(const int &row, const int &col){
 	return row * COLS + col;
 }
-
+inline int sq_row(const int& id){
+	return (id / COLS);
+}
+inline int sq_col(const int& id){
+	return (id % COLS);
+}
 void update_cell_status(const int &row, const int&col, std::vector<int>&vec){
 	int id = sq_id(row, col);
 	switch (vec[id]){;
@@ -154,7 +169,7 @@ void update_current_gen(std::vector<std::vector<int>>& curr_gen_vec,
 		}
 	}
 }
-//I want to render basing on the live cells, so I'll have to refer to the status_vec
+
 void render(sf::RenderWindow &window, 
 			const std::vector<int>& status_vec, 
 			const std::vector<sf::RectangleShape> &rects){
@@ -172,9 +187,6 @@ void render(sf::RenderWindow &window,
 
 void print_curr_gen(const std::vector<std::vector<int>>& curr_gen_vec){
 	for(const auto& el : curr_gen_vec){
-		for(const auto& in_el : el){
-			std::cout << in_el << " ";
-		}
-		std::cout << std::endl;
+		std::cout << "SQ_ID : " << el[0] << " => " << (el[1] == 1 ? "live" : "dead") << std::endl;
 	}
 }
